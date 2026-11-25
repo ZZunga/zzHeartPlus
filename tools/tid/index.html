@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>zzHeartPlus 운동 형태 분석기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=Titillium+Web:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* 레이아웃: 왼쪽 입력 / 오른쪽 결과·순위, 아래 기기 미리보기와 상수. 존 색은 기기와 같은 가민 팔레트. */
+:root {
+  --bg: #F4F5F7;
+  --panel: #FFFFFF;
+  --ink: #1D2030;
+  --muted: #646A7E;
+  --line: #DDE0E7;
+  --accent: #B3122E;
+  --z1: #555555; --z2: #0000FF; --z3: #00AA00; --z4: #FF5500; --z5: #AA0000;
+  --font-display: "Titillium Web", "Segoe UI", sans-serif;
+  --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111318; --panel: #1A1D24; --ink: #E9EBF1; --muted: #9AA0B2; --line: #2C303A; --accent: #FF4D63;
+    --z1: #AAAAAA; --z2: #00AAFF; --z3: #00FF00; --z4: #FFAA00; --z5: #FF0000;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111318; --panel: #1A1D24; --ink: #E9EBF1; --muted: #9AA0B2; --line: #2C303A; --accent: #FF4D63;
+  --z1: #AAAAAA; --z2: #00AAFF; --z3: #00FF00; --z4: #FFAA00; --z5: #FF0000;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--font-body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 24px 20px 48px; display: grid; gap: 20px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+h1 { font: 700 26px/1.2 var(--font-display); margin: 0; letter-spacing: .2px; text-wrap: balance; }
+h1 span { color: var(--accent); }
+header p { margin: 0; color: var(--muted); }
+h2 { font: 600 15px/1.3 var(--font-body); margin: 0 0 12px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+.grid { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: 20px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+
+/* 입력 */
+.presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.chip { font: 500 13px var(--font-body); border: 1px solid var(--line); background: transparent; color: var(--ink);
+  border-radius: 999px; padding: 5px 11px; cursor: pointer; }
+.chip:hover { border-color: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.zone { display: grid; grid-template-columns: 34px 1fr 64px 46px; gap: 10px; align-items: center; margin: 8px 0; }
+.zone b { font: 700 15px var(--font-display); }
+.zone input[type=range] { width: 100%; }
+.zone input[type=number] { width: 64px; font: 14px var(--font-body); padding: 4px 6px; border: 1px solid var(--line);
+  border-radius: 6px; background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; }
+.zone .pct { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; }
+.total { display: flex; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 10px; margin-top: 10px; color: var(--muted); }
+.total strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.opts { display: grid; gap: 10px; margin-top: 16px; }
+.opt { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { font: 500 13px var(--font-body); border: 0; background: transparent; color: var(--ink); padding: 5px 10px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel); }
+.opt input[type=number] { width: 64px; font: 14px var(--font-body); padding: 3px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); }
+.hint { color: var(--muted); font-size: 12.5px; margin: 6px 0 0; }
+
+/* 결과 */
+.verdict { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: end; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.verdict .tag { font: 700 30px/1.25 var(--font-display), var(--font-body); letter-spacing: .2px; text-wrap: balance; }
+.verdict .ko { font-size: 17px; font-weight: 600; }
+.verdict .desc { color: var(--muted); grid-column: 1 / -1; }
+.verdict .score { font: 700 34px/1 var(--font-display); text-align: right; font-variant-numeric: tabular-nums; }
+.verdict .score small { display: block; font: 500 12px var(--font-body); color: var(--muted); }
+.pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; margin-left: 8px; vertical-align: 3px; }
+.pill.warn { background: color-mix(in srgb, #E8A100 22%, transparent); color: var(--ink); }
+.pill.wait { background: color-mix(in srgb, var(--muted) 22%, transparent); color: var(--ink); }
+.compare { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 16px 0 6px; height: 150px; align-items: end; }
+.cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; height: 100%; align-items: end; position: relative; }
+.cmp .me, .cmp .mo { border-radius: 3px 3px 0 0; min-height: 1px; }
+.cmp .mo { background: transparent; border: 2px dashed var(--muted); border-bottom: 0; }
+.cmp-l { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; font-size: 12px; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+.legend { display: flex; gap: 16px; font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 14px; height: 10px; vertical-align: -1px; margin-right: 5px; border-radius: 2px; }
+
+.rank { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.rank li { display: grid; grid-template-columns: 74px 1fr 92px 52px; gap: 12px; align-items: center; padding: 6px 8px; border-radius: 8px; }
+.rank li.best { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.rank .k { font: 700 15px var(--font-display); }
+.rank .n { font-size: 13.5px; }
+.rank .n small { display: block; color: var(--muted); font-size: 12px; }
+.spark { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; height: 30px; align-items: end; }
+.spark span { border-radius: 2px 2px 0 0; min-height: 1px; }
+.rank .s { text-align: right; font: 700 16px var(--font-display); font-variant-numeric: tabular-nums; }
+
+/* 기기 미리보기 */
+.dev { display: grid; grid-template-columns: minmax(0, 480px) 1fr; gap: 24px; align-items: start; }
+@media (max-width: 860px) { .dev { grid-template-columns: 1fr; } }
+canvas { width: 100%; max-width: 480px; height: auto; border-radius: 8px; border: 1px solid var(--line); display: block; }
+.dev ul { margin: 0; padding-left: 18px; color: var(--ink); }
+.dev li { margin: 4px 0; }
+.dev .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+pre { margin: 0; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; font: 12.5px/1.5 ui-monospace, Consolas, monospace; overflow-x: auto; }
+.copy { font: 600 13px var(--font-body); border: 0; border-radius: 8px; padding: 7px 14px; background: var(--accent); color: #fff; cursor: pointer; }
+.copy:focus-visible, .chip:focus-visible, .seg button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.foot { color: var(--muted); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>zzHeartPlus <span>운동 형태</span> 분석기</h1>
+    <p>존별 시간을 넣으면 Riduck TID 8가지 모델 중 가장 닮은 형태를 찾습니다.</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="in-h">
+      <h2 id="in-h">존별 시간 (분)</h2>
+      <div class="presets" id="presets"></div>
+      <div id="zones"></div>
+      <div class="total"><span>기록 시간</span><strong id="total">0분</strong></div>
+
+      <div class="opts">
+        <div class="opt"><span>닮은 정도 계산</span>
+          <span class="seg" role="group" aria-label="닮은 정도 계산 방식">
+            <button type="button" id="m-overlap" aria-pressed="true">겹침 %</button>
+            <button type="button" id="m-euclid" aria-pressed="false">거리</button>
+          </span>
+        </div>
+        <div class="opt"><label for="minMin">분석 시작 (최소 기록 분)</label><input type="number" id="minMin" min="0" max="120" value="10"></div>
+        <div class="opt"><label for="gap">1·2위 차이가 이보다 작으면 "비슷함"</label><input type="number" id="gap" min="0" max="50" value="5"></div>
+      </div>
+      <p class="hint">겹침 %: 내 분포와 모델 분포가 겹치는 넓이(각 존에서 작은 쪽의 합). 거리: 100에서 두 분포 사이 거리를 뺀 값.</p>
+    </section>
+
+    <section class="panel" aria-labelledby="out-h">
+      <h2 id="out-h">판정</h2>
+      <div class="verdict" id="verdict"></div>
+      <div class="compare" id="compare" aria-label="내 분포와 1위 모델 분포 비교"></div>
+      <div class="cmp-l" id="cmpl"></div>
+      <div class="legend"><span><i style="background:var(--muted)"></i>내 분포 (존 색)</span><span><i style="border:2px dashed var(--muted)"></i>1위 모델</span></div>
+
+      <h2 style="margin-top:20px">8가지 모델과 닮은 정도</h2>
+      <ol class="rank" id="rank"></ol>
+    </section>
+  </div>
+
+  <section class="panel dev" aria-labelledby="dev-h">
+    <div>
+      <canvas id="dev" width="480" height="399" aria-label="Edge 1050 넓고 높은 칸 미리보기"></canvas>
+      <div class="row" style="margin-top:10px">
+        <span class="seg" role="group" aria-label="배경">
+          <button type="button" id="bg-l" aria-pressed="true">흰 배경</button>
+          <button type="button" id="bg-d" aria-pressed="false">검정 배경</button>
+        </span>
+      </div>
+    </div>
+    <div>
+      <h2 id="dev-h">기기 화면 (Edge 1050/1060 넓고 높은 칸 480×399, 설정 켬)</h2>
+      <ul>
+        <li>위쪽 절반: 타이틀 줄, 현재 심박과 평균을 같은 크기로 나란히, 심박 바로 아래 한 줄에 운동 형태.</li>
+        <li>아래쪽 절반: 존별 시간 % 히스토그램과 존 띠.</li>
+        <li>기록이 최소 시간보다 짧으면 운동 형태 자리에 <b>ANALYZING</b>을 흐리게 표시.</li>
+        <li>표시 형식은 <b>HVLI(92%) - 저강도 고볼륨</b>. 기기에는 모델 이름에 쓰이는 한글 글자만 담은 작은 폰트를 넣을 예정입니다.</li>
+      </ul>
+      <h2 style="margin-top:18px">Monkey C 상수</h2>
+      <div class="row"><button type="button" class="copy" id="copy">상수 복사</button><span class="hint" id="copied" aria-live="polite"></span></div>
+      <pre id="mc"></pre>
+    </div>
+  </section>
+
+  <p class="foot">모델 기준 분포는 Riduck 심박분석의 TID 모델 표에서 가져왔습니다. Riduck은 4·6·12주 단위로 분석하고, 이 도구는 한 번의 라이딩에 같은 기준을 적용합니다.</p>
+</div>
+
+<script>
+const MODELS = [
+  { key: "HVLI",   ko: "저강도 고볼륨", desc: "저강도 비중 최대화, 기초 베이스 구축",   dist: [35, 55, 5, 2, 3] },
+  { key: "HIT",    ko: "고강도 인터벌", desc: "고강도 인터벌 집중, 단기 성과 위주",     dist: [20, 20, 5, 5, 50] },
+  { key: "PRMD",   ko: "피라미드",     desc: "계단식 하향 분포, 가장 안정적인 모델",   dist: [20, 55, 15, 5, 5] },
+  { key: "R.PRMD", ko: "역피라미드",    desc: "고강도 중심 하향, 근지구력·파워 강조",   dist: [3, 7, 10, 30, 50] },
+  { key: "THRD",   ko: "역치",        desc: "중강도(Z3~4) 집중, 경기 페이스 적응",   dist: [10, 35, 25, 25, 5] },
+  { key: "POL",    ko: "양극화",       desc: "중간(Z3~4) 배제, 양극단 강도 최적화",   dist: [25, 55, 2, 3, 15] },
+  { key: "R.POL",  ko: "역양극화",      desc: "극단적 고강도 모델, 특정 시즌용",       dist: [10, 10, 5, 15, 60] },
+  { key: "EVEN",   ko: "균등",        desc: "전 구역 균등 배분, 무작위 훈련 형태",    dist: [20, 20, 20, 20, 20] }
+];
+const PRESETS = [
+  { name: "LSD 3시간", min: [55, 110, 12, 3, 0] },
+  { name: "회복 45분", min: [30, 14, 1, 0, 0] },
+  { name: "Z2 + 5x4분", min: [30, 66, 2, 4, 18] },
+  { name: "그룹 라이딩", min: [30, 80, 22, 8, 4] },
+  { name: "템포 90분", min: [10, 30, 28, 20, 2] },
+  { name: "역치 2x20분", min: [12, 30, 18, 25, 5] },
+  { name: "VO2max 인터벌", min: [12, 12, 3, 4, 29] },
+  { name: "힐클라임 레이스", min: [1, 3, 5, 18, 33] },
+  { name: "크리테리움", min: [5, 5, 3, 9, 38] },
+  { name: "출퇴근", min: [6, 6, 6, 5, 5] },
+  { name: "막 출발 6분", min: [3, 3, 0, 0, 0] }
+];
+
+const state = { min: PRESETS[0].min.slice(), method: "overlap", minMinutes: 10, closeGap: 5, preset: 0, dark: false };
+
+function score(pct, dist, method) {
+  let s = 0;
+  if (method === "euclid") {
+    for (let i = 0; i < 5; i++) s += (pct[i] - dist[i]) ** 2;
+    return 100 - Math.sqrt(s);
+  }
+  for (let i = 0; i < 5; i++) s += Math.min(pct[i], dist[i]);
+  return s;
+}
+function classify() {
+  const total = state.min.reduce((a, b) => a + b, 0);
+  const pct = state.min.map(m => total > 0 ? m / total * 100 : 0);
+  const ranking = MODELS.map(m => ({ ...m, score: score(pct, m.dist, state.method) })).sort((a, b) => b.score - a.score);
+  return { total, pct, ranking, best: ranking[0], ready: total >= state.minMinutes && total > 0,
+           close: ranking[0].score - ranking[1].score < state.closeGap };
+}
+
+const zc = () => [1,2,3,4,5].map(i => getComputedStyle(document.documentElement).getPropertyValue("--z" + i).trim());
+// 표시 형식: "HVLI(92%) - 저강도 고볼륨"
+const label = (m, sc) => `${m.key}(${Math.round(sc)}%) - ${m.ko}`;
+const fmtMin = m => m >= 60 ? `${Math.floor(m / 60)}시간 ${m % 60}분` : `${m}분`;
+
+// ---- 입력 만들기 ----
+const pz = document.getElementById("presets");
+PRESETS.forEach((p, i) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "chip"; b.textContent = p.name; b.id = "preset-" + i;
+  b.addEventListener("click", () => { state.min = p.min.slice(); state.preset = i; sync(); });
+  pz.appendChild(b);
+});
+const zw = document.getElementById("zones");
+for (let i = 0; i < 5; i++) {
+  const row = document.createElement("div");
+  row.className = "zone";
+  row.innerHTML = `<b style="color:var(--z${i + 1})">Z${i + 1}</b>
+    <input type="range" id="r${i}" min="0" max="180" step="1" aria-label="Z${i + 1} 분">
+    <input type="number" id="n${i}" min="0" max="600" aria-label="Z${i + 1} 분 직접 입력">
+    <span class="pct" id="p${i}"></span>`;
+  zw.appendChild(row);
+  const set = v => { state.min[i] = Math.max(0, Math.round(+v || 0)); state.preset = -1; sync(); };
+  row.querySelector("#r" + i).addEventListener("input", e => set(e.target.value));
+  row.querySelector("#n" + i).addEventListener("input", e => set(e.target.value));
+}
+function seg(aId, bId, onA, onB) {
+  const a = document.getElementById(aId), b = document.getElementById(bId);
+  a.addEventListener("click", () => { onA(); a.setAttribute("aria-pressed", "true"); b.setAttribute("aria-pressed", "false"); render(); });
+  b.addEventListener("click", () => { onB(); b.setAttribute("aria-pressed", "true"); a.setAttribute("aria-pressed", "false"); render(); });
+}
+seg("m-overlap", "m-euclid", () => state.method = "overlap", () => state.method = "euclid");
+seg("bg-l", "bg-d", () => state.dark = false, () => state.dark = true);
+document.getElementById("minMin").addEventListener("input", e => { state.minMinutes = Math.max(0, +e.target.value || 0); render(); });
+document.getElementById("gap").addEventListener("input", e => { state.closeGap = Math.max(0, +e.target.value || 0); render(); });
+
+function sync() {
+  for (let i = 0; i < 5; i++) {
+    document.getElementById("r" + i).value = Math.min(180, state.min[i]);
+    const n = document.getElementById("n" + i);
+    if (document.activeElement !== n) n.value = state.min[i];
+  }
+  PRESETS.forEach((p, i) => document.getElementById("preset-" + i).setAttribute("aria-pressed", String(i === state.preset)));
+  render();
+}
+
+// ---- 결과 ----
+function render() {
+  const r = classify();
+  const colors = zc();
+  for (let i = 0; i < 5; i++) document.getElementById("p" + i).textContent = r.pct[i].toFixed(0) + "%";
+  document.getElementById("total").textContent = fmtMin(r.total);
+
+  const v = document.getElementById("verdict");
+  const status = !r.ready ? `<span class="pill wait">분석 중 · ${state.minMinutes}분부터</span>`
+               : r.close ? `<span class="pill warn">${r.ranking[1].key}와 비슷함</span>` : "";
+  v.innerHTML = `<div><div class="tag">${r.ready ? label(r.best, r.best.score) : "분석 중"}${status}</div></div>
+    <div class="score">${r.best.score.toFixed(0)}<small>${state.method === "overlap" ? "겹침 %" : "점수"}</small></div>
+    <div class="desc">${r.best.desc}</div>`;
+
+  const cmp = document.getElementById("compare");
+  const mx = Math.max(60, ...r.pct, ...r.best.dist);
+  cmp.innerHTML = r.pct.map((p, i) => `<div class="cmp">
+      <div class="me" style="height:${p / mx * 100}%;background:${colors[i]}" title="내 분포 Z${i + 1} ${p.toFixed(0)}%"></div>
+      <div class="mo" style="height:${r.best.dist[i] / mx * 100}%" title="${r.best.key} Z${i + 1} ${r.best.dist[i]}%"></div></div>`).join("");
+  document.getElementById("cmpl").innerHTML = r.pct.map((p, i) =>
+    `<span><b style="color:var(--z${i + 1})">Z${i + 1}</b> ${p.toFixed(0)} / ${r.best.dist[i]}</span>`).join("");
+
+  document.getElementById("rank").innerHTML = r.ranking.map((m, idx) => `<li class="${idx === 0 ? "best" : ""}">
+      <span class="k">${m.key}</span>
+      <span class="n">${label(m, m.score)}<small>${m.dist.join(" · ")}</small></span>
+      <span class="spark">${m.dist.map((d, i) => `<span style="height:${d / 60 * 100}%;background:${colors[i]}"></span>`).join("")}</span>
+      <span class="s">${m.score.toFixed(0)}</span></li>`).join("");
+
+  drawDevice(r);
+  document.getElementById("mc").textContent = monkeyC();
+}
+
+// ---- 기기 미리보기 (Edge 1050 넓고 높은 칸 480x399) ----
+function drawDevice(r) {
+  const c = document.getElementById("dev"), g = c.getContext("2d");
+  const W = c.width, H = c.height, dark = state.dark;
+  const bg = dark ? "#17181D" : "#FFFFFF", fg = dark ? "#FFFFFF" : "#313152", dim = dark ? "#AAAAAA" : "#555555";
+  const Z = dark ? ["#AAAAAA", "#00AAFF", "#00FF00", "#FFAA00", "#FF0000"] : ["#555555", "#0000FF", "#00AA00", "#FF5500", "#AA0000"];
+  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  const L = 24, T = 20, half = Math.round(H / 2);
+  const capPx = cap => cap / 0.69;            // Titillium 숫자 높이 → 폰트 크기
+  const text = (s, x, y, cap, color, weight = 700, align = "left") => {
+    g.font = `${weight} ${capPx(cap)}px "Titillium Web"`; g.fillStyle = color; g.textAlign = align; g.textBaseline = "alphabetic";
+    g.fillText(s, x, y + cap);                   // y = 숫자 윗선
+  };
+  // 예시 값: 현재 심박 / 평균 / 현재 존
+  const hr = 152, avg = 141, zone = 2.6, zi = 1;
+  // 타이틀 줄 (타이틀 26 / 라벨 21)
+  const tY = T + 3;
+  heart(g, L, tY - 3, 34, dark ? "#FF0000" : "#AA0000");
+  text(zone.toFixed(1), L + 42, tY, 26, Z[zi], 600);
+  g.font = `600 ${capPx(26)}px "Titillium Web"`;
+  const zw = g.measureText(zone.toFixed(1)).width;
+  // 기기와 같은 규칙: 라벨과 겹치면 타이틀 생략
+  g.font = `600 ${capPx(21)}px "Titillium Web"`;
+  const lw = g.measureText("AVG bpm").width;
+  g.font = `600 ${capPx(26)}px "Titillium Web"`;
+  const tx = L + 42 + zw + 13;
+  if (tx + g.measureText("zzHeartPlus").width <= W - L - lw - 4) text("zzHeartPlus", tx, tY, 26, fg, 600);
+  text("AVG bpm", W - L, tY + 5, 21, dim, 600, "right");
+  // 값 두 개 (숫자 높이 72): 위쪽 절반 안
+  const mid = W / 2, gap = 19, xc1 = (L + mid - gap / 2) / 2, xc2 = (mid + gap / 2 + W - L) / 2;
+  const vY = tY + 26 + 22;
+  text(String(hr), xc1, vY, 72, fg, 700, "center");
+  text(String(avg), xc2, vY, 72, fg, 700, "center");
+  // 운동 형태 (심박 바로 아래 한 줄, 라벨 크기 21): "HVLI(92%) - 저강도 고볼륨"
+  const lY = vY + 72 + 12;
+  const tf = `600 ${capPx(21)}px "Titillium Web", "IBM Plex Sans KR", sans-serif`;
+  g.font = tf; g.textAlign = "left"; g.textBaseline = "alphabetic";
+  const lx = xc1 - ctxW(g, String(hr), 72) / 2;     // 심박 숫자 왼쪽 끝에 맞춤
+  if (r.ready) {
+    const head = `${r.best.key}(${Math.round(r.best.score)}%)`;
+    g.fillStyle = fg; g.font = `700 ${capPx(21)}px "Titillium Web", sans-serif`;
+    g.fillText(head, lx, lY + 21);
+    const hw = g.measureText(head).width;
+    g.fillStyle = dim; g.font = tf;
+    g.fillText(" - " + r.best.ko, lx + hw, lY + 21);
+  } else {
+    g.fillStyle = dim; g.font = tf; g.fillText("ANALYZING", lx, lY + 21);
+  }
+  // 아래쪽 절반: 히스토그램 + 존 띠 + % 숫자
+  const strip = 8, base = H - strip, top = half + 34, avail = base - top;
+  for (let i = 0; i < 5; i++) {
+    const x0 = Math.round(W * i / 5), x1 = Math.round(W * (i + 1) / 5);
+    g.fillStyle = Z[i]; g.fillRect(x0, base, x1 - x0 - 1, strip);
+    const bh = Math.round(avail * r.pct[i] / 100), bt = base - bh;
+    g.strokeStyle = Z[i]; g.lineWidth = 1;
+    for (let y = base - 2; y >= bt; y -= 5) { g.beginPath(); g.moveTo(x0 + 1, y + .5); g.lineTo(x1 - 2, y + .5); g.stroke(); }
+    if (bh > 0) { g.beginPath(); g.moveTo(x0 + 1, bt + .5); g.lineTo(x1 - 2, bt + .5); g.stroke(); }
+    if (r.pct[i] > 0) text(r.pct[i].toFixed(0) + "%", (x0 + x1) / 2, bt - 22, 18, dim, 600, "center");
+  }
+  // 현재 위치 화살표
+  const a = strip + 2, cx = Math.max(a, Math.min(W - a, W * (zone - 1) / 5));
+  g.fillStyle = fg; g.beginPath(); g.moveTo(cx - a, base - a); g.lineTo(cx, base); g.lineTo(cx + a, base - a); g.fill();
+  // 절반 기준선 (설명용, 기기에는 없음)
+  g.setLineDash([4, 4]); g.strokeStyle = dark ? "#3A3D48" : "#D7DAE2"; g.beginPath(); g.moveTo(0, half + .5); g.lineTo(W, half + .5); g.stroke(); g.setLineDash([]);
+}
+function ctxW(g, s, cap) {
+  const f = g.font; g.font = `700 ${cap / 0.69}px "Titillium Web"`;
+  const w = g.measureText(s).width; g.font = f; return w;
+}
+function heart(g, x, y, s, color) {
+  const P = [[93,505],[147,555],[201,606],[255,657],[310,707],[364,758],[418,809],[477,852],[500,852],[548,839],[602,789],[657,738],[711,688],[765,637],[819,586],[874,536],[927,484],[969,423],[993,353],[1000,279],[990,204],[961,137],[916,80],[858,36],[788,8],[713,0],[640,12],[573,42],[516,89],[500,96],[463,69],[401,28],[331,5],[257,1],[183,17],[118,51],[64,100],[25,162],[3,232],[0,308],[14,381],[45,447]];
+  const k = s / 1000, oy = y + (s - 852 * k) / 2;
+  g.fillStyle = color; g.beginPath(); P.forEach(([px, py], i) => i ? g.lineTo(x + px * k, oy + py * k) : g.moveTo(x + px * k, oy + py * k)); g.closePath(); g.fill();
+}
+
+// ---- Monkey C 상수 ----
+function monkeyC() {
+  const pad = s => s.padEnd(8);
+  return `// TID 모델 기준 분포 (Z1..Z5 %, Riduck 심박분석)
+const TID_KEYS = [ ${MODELS.map(m => `"${m.key}"`).join(", ")} ];
+const TID_NAMES = [ ${MODELS.map(m => `"${m.ko}"`).join(", ")} ];   // 한글 글리프 폰트 필요
+const TID_DIST = [
+${MODELS.map(m => `    [ ${m.dist.map(d => String(d).padStart(2)).join(", ")} ],   // ${pad(m.key)} ${m.ko}`).join("\n")}
+];
+const TID_METHOD    = ${state.method === "overlap" ? 0 : 1};     // 0 = 겹침 %, 1 = 거리
+const TID_MIN_SEC   = ${state.minMinutes * 60};   // 이보다 짧으면 "ANALYZING"
+const TID_CLOSE_GAP = ${state.closeGap};
+
+// 표시: "HVLI(92%) - 저강도 고볼륨"
+function tidLabel(i, score) {
+    return TID_KEYS[i] + "(" + score.format("%d") + "%) - " + TID_NAMES[i];
+}
+
+// 겹침 %: 각 존에서 작은 쪽 비율의 합 (pct 는 0..100 정수)
+function tidScore(pct, d) {
+    var s = 0;
+    for (var i = 0; i < 5; i++) {
+        s += (pct[i] < d[i]) ? pct[i] : d[i];
+    }
+    return s;
+}`;
+}
+document.getElementById("copy").addEventListener("click", async () => {
+  const out = document.getElementById("copied");
+  try { await navigator.clipboard.writeText(monkeyC()); out.textContent = "복사했어요"; }
+  catch (e) { out.textContent = "복사가 막혔어요. 아래 상자에서 직접 선택해 복사하세요."; }
+});
+
+const mq = window.matchMedia("(prefers-color-scheme: dark)");
+const applyTheme = () => {
+  const t = document.documentElement.getAttribute("data-theme");
+  state.dark = t ? t === "dark" : mq.matches;
+  document.getElementById("bg-l").setAttribute("aria-pressed", String(!state.dark));
+  document.getElementById("bg-d").setAttribute("aria-pressed", String(state.dark));
+};
+applyTheme();
+document.fonts && document.fonts.ready.then(render);
+sync();
+</script>
+</body>
+</html>

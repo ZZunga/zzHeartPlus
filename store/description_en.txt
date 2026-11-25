@@ -1,0 +1,64 @@
+[Title]
+zzHeartPlus - Heart Rate, Zone, Training Type
+
+[Description]
+A data field that shows your current heart rate and zone in big digits, and draws a histogram of the time spent in each zone while you record.
+In large wide fields it also analyzes your heart rate distribution so far and shows what kind of session you are riding (training intensity distribution, TID).
+Built with the TitilliumWeb font for better readability on the move.
+A rebuilt version of zzHeartChart.
+
+- Needs a heart rate sensor (chest strap or optical). No phone connection required.
+
+[Heart rate and zone]
+- Current heart rate in big digits that fill the field.
+- Your current zone next to the heart, in the zone color. Show it as a decimal like 2.4 (position inside the zone) or as a whole number (setting).
+- Average, max or lap average heart rate in the top right corner (or none).
+- An arrow on the zone color bar at the bottom points to your current heart rate.
+
+[Time in zone histogram]
+- Time is collected per zone while the timer runs, and each bar shows that zone's share (%) of the total recorded time.
+- Paused and auto-paused time is left out.
+- Large wide fields show the percentage above each bar.
+- Bars can be striped (keeps the digits easy to read) or solid.
+- If the app restarts during a ride, the histogram carries on.
+
+[Training type analysis]
+- In large wide fields (1 or 2 field layouts), heart rate and the second value go in the top half and the histogram in the bottom half.
+- After 10 minutes of recording, your time-in-zone distribution is compared with 8 TID models and the closest one is shown right under your heart rate.
+  Example: HVLI(92%) - High Volume Low Intensity
+- The number in brackets is how much your distribution overlaps the model's (%).
+- The 8 models: HVLI, HIT, PRMD (pyramidal), R.PRMD (reverse pyramidal), THRD (threshold), POL (polarized), R.POL (reverse polarized), EVEN
+- The analysis only runs every 10 seconds in large wide fields, so other fields use no extra battery. It can be turned off in settings.
+
+[Colors]
+- Current heart rate changes color when it is a set percentage above or below the second value (average etc.). Pick separate colors for above and below.
+- Choose "Heart zone color" to always show your heart rate in its zone color.
+- The background follows your device setting (white or black).
+
+[Heart rate zones]
+- By default the zones set on your device are used (current sport profile).
+- Or calculate from max heart rate: Default, Joe Friel, Andrew Coggan, USA Cycling, British Cycling, Strava, Garmin
+- Or enter zones 1 to 5 yourself.
+
+[Layouts, picked automatically]
+- One slot of the 10-field layout: heart, zone and second value on top, large current heart rate below.
+- Wide slots: zzHeartPlus title with the active value (AVG / MAX / LAP) on top, both values side by side at the same size below.
+- Large wide slots: the training type analysis screen (or the wide layout if turned off).
+- Same typeface, sizes and layout as zzSpeedPlus and zzCadencePlus, so they look consistent side by side.
+
+[Recording]
+- Your current zone is saved in the activity, so you can see it as a chart in Garmin Connect.
+- Time in each zone (%) is saved in the activity summary.
+
+[Supported devices]
+Edge 540 / 550 / 840 / 850 / 1040 / 1050 / 1060
+
+Change settings in the Garmin Connect IQ app or Garmin Express.
+
+[What's new]
+v1.0.2
+- Background setting added (match device screen / plain black & white / transparent)
+  Addresses the data field background not matching built-in fields on Edge 1050/1060.
+- In wide fields the % labels above the bars are dropped when the training-type line is shown (fixes the field drawing blank)
+v1.0.1
+- First release
