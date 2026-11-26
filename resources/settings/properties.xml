@@ -1,5 +1,5 @@
 <properties>
-    <property id="appVersion" type="string">1.0.2</property>
+    <property id="appVersion" type="string">1.0.3</property>
 
     <!-- 우측 상단 보조값: 0=평균 1=최대 2=랩평균 3=없음 (zzHeartChart 와 같은 번호) -->
     <property id="dataMode" type="number">0</property>
