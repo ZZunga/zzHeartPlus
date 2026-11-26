@@ -44,7 +44,7 @@ module Config {
     }
 
     class Snapshot {
-        var bgMode     = BG_PLAIN; // 배경색
+        var bgMode     = BG_AUTO;  // 배경색
         var secondary   = SEC_AVG;
         var showIcon    = true;     // 하트 + 존 번호
         var zoneDecimal = true;     // 존 번호 2.4 처럼 소수 한 자리
@@ -134,7 +134,7 @@ module Config {
         s.threshold   = _num("threshold", 5, 0, 100);
         s.colorHigh   = _num("colorHigh", COLOR_DEFAULT, 0, 11);
         s.colorLow    = _num("colorLow", COLOR_DEFAULT, 0, 11);
-        s.bgMode      = _num("bgMode", BG_PLAIN, 0, 2);
+        s.bgMode      = _num("bgMode", BG_AUTO, 0, 2);
         _cache = s;
         return s;
     }
